@@ -22,19 +22,27 @@ export function Sheet({
   wide?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  // Callers usually pass an inline `() => setOpen(false)`, a new function on every render.
+  // Keep it in a ref so the effect below runs only when the sheet opens or closes; otherwise
+  // every keystroke re-ran it and yanked the cursor back to the first field.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
     document.addEventListener('keydown', onKey);
-    const first = panel.current?.querySelector<HTMLElement>('input, select, textarea, button:not([data-close])');
-    (first ?? panel.current)?.focus();
+    // Focus the first field once, when it opens (not a field the person already clicked into).
+    if (!panel.current?.contains(document.activeElement)) {
+      const first = panel.current?.querySelector<HTMLElement>('input, select, textarea, button:not([data-close])');
+      (first ?? panel.current)?.focus();
+    }
     return () => {
       document.removeEventListener('keydown', onKey);
       prev?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (
