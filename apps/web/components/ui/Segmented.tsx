@@ -14,7 +14,7 @@ export function Segmented<T extends string>({
   dark?: boolean;
 }) {
   return (
-    <div role="tablist" className={`hide-scrollbar flex gap-1.5 overflow-x-auto ${className}`}>
+    <div role="tablist" className={`hide-scrollbar flex max-w-full gap-1.5 overflow-x-auto ${className}`}>
       {options.map((o) => {
         const on = o.value === value;
         return (

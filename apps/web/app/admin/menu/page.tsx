@@ -122,10 +122,62 @@ export default function MenuAdminPage() {
               ...categories.filter((c) => c.isActive).map((c) => ({ value: c.id, label: c.name })),
               ...(removedCount ? [{ value: 'removed', label: 'Removed', badge: removedCount }] : []),
             ]} />
-          <Input id="menu-q" placeholder="Search" className="h-10 max-w-[14rem]" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input id="menu-q" type="search" placeholder="Search" className="h-10 w-full sm:max-w-[14rem]" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-line bg-canvas">
+        {/* Phone: one card per item. */}
+        <ul className="flex flex-col gap-2 md:hidden">
+          {shown.map((p) => {
+            const inactive = !p.isActive || p.status === 'INACTIVE';
+            return (
+              <li key={p.id} className={`flex items-center gap-3 rounded-xl border border-line bg-canvas p-3 ${inactive ? 'opacity-60' : ''}`}>
+                {p.imageReference ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.imageReference} alt="" className="h-14 w-14 shrink-0 rounded-md object-cover" />
+                ) : (
+                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-canvas-sunk text-sm font-bold text-mute">{p.name.slice(0, 2)}</span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{p.name}</p>
+                  <p className="truncate text-xs text-mute">
+                    {p.category?.name}
+                    {p.modifiers.length ? ` · ${p.modifiers.length} add-on${p.modifiers.length === 1 ? '' : 's'}` : ''}
+                  </p>
+                  <p className="font-semibold tnum">{money(p.sellingPrice)}</p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  {inactive ? (
+                    can('product.update') ? (
+                      <Button variant="outline" size="sm" onClick={() => restore(p)}>
+                        Bring back
+                      </Button>
+                    ) : (
+                      <Pill>Not on menu</Pill>
+                    )
+                  ) : (
+                    <button
+                      role="switch"
+                      aria-checked={p.status === 'AVAILABLE'}
+                      aria-label={`${p.name} in stock`}
+                      onClick={() => toggleStock(p)}
+                      disabled={!can('product.status_update')}
+                      className={`inline-flex h-8 items-center gap-2 rounded-full px-1 pr-3 text-xs font-bold ${p.status === 'AVAILABLE' ? 'bg-positive-bg text-positive' : 'bg-negative-bg text-negative'}`}
+                    >
+                      <span className={`h-6 w-6 rounded-full ${p.status === 'AVAILABLE' ? 'bg-positive' : 'bg-negative'}`} />
+                      {p.status === 'AVAILABLE' ? 'In stock' : 'Out'}
+                    </button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => setEditing(p)}>
+                    Edit
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+          {shown.length === 0 && <li className="rounded-xl border border-line bg-canvas py-10 text-center text-sm text-mute">No items.</li>}
+        </ul>
+
+        <div className="hidden overflow-x-auto rounded-xl border border-line bg-canvas md:block">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs text-mute">
