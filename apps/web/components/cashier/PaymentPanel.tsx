@@ -552,7 +552,7 @@ function VerifyRow({ p, label, hasProof, onChanged }: { p: PaymentSummary; label
         p.reportedByWaiter && toCents(p.changeAmount) > 0
           ? `${label} received — give ${money(p.changeAmount)} change from the drawer`
           : `${label} ${money(p.appliedAmount)} received`,
-        'success',
+        'ok',
       );
       onChanged();
     } catch (e) {
@@ -570,7 +570,7 @@ function VerifyRow({ p, label, hasProof, onChanged }: { p: PaymentSummary; label
         toCents(p.changeAmount) > 0 && !p.reportedByWaiter
           ? `Marked not received. Note: ${money(p.changeAmount)} cash change was already given — follow up with the customer.`
           : 'Marked not received — the amount is back on the bill',
-        'success',
+        'ok',
       );
       setRejecting(false);
       setReason('');

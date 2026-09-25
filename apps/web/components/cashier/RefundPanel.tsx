@@ -66,7 +66,7 @@ export function RefundPanel({ order, onChanged }: { order: OrderDetail; onChange
       await api.post(`/refunds/${r.id}/approve`); // opens the manager PIN pad
       await api.post(`/refunds/${r.id}/confirm`, {}, { headers: { 'Idempotency-Key': newIdempotencyKey() } });
     }
-    toast(`${money(r.amount)} refunded${r.method === 'CASH' ? ' — give the cash back from the drawer' : ''}`, 'success');
+    toast(`${money(r.amount)} refunded${r.method === 'CASH' ? ' — give the cash back from the drawer' : ''}`, 'ok');
   }
 
   async function run(fn: () => Promise<void>) {
@@ -93,7 +93,7 @@ export function RefundPanel({ order, onChanged }: { order: OrderDetail; onChange
       setAmount('');
       setReason('');
       if (can('refund.confirm')) await payOut(r);
-      else toast('Refund requested — a cashier or manager will pay it out', 'success');
+      else toast('Refund requested — a cashier or manager will pay it out', 'ok');
     });
 
   return (

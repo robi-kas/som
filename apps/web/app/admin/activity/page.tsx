@@ -185,7 +185,7 @@ function ClearOldSheet({ open, onClose, onCleared }: { open: boolean; onClose: (
     setBusy(true);
     try {
       const { removed } = await api.post<{ removed: number }>('/audit-logs/purge', { olderThanDays: days, password });
-      toast(removed ? `Removed ${removed} entries older than ${days} days` : `Nothing older than ${days} days`, 'success');
+      toast(removed ? `Removed ${removed} entries older than ${days} days` : `Nothing older than ${days} days`, 'ok');
       setPassword('');
       onClose();
       onCleared();

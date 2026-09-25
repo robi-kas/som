@@ -160,7 +160,7 @@ export default function PrintedBillsPage() {
     try {
       if (selected.type === 'receipt') await api.post(`/receipts/${selected.row.id}/reprint`, { reason: reason.trim() });
       else await api.post(`/printer-jobs/${selected.row.id}/reprint`);
-      toast('Sent to the printer, marked COPY', 'success');
+      toast('Sent to the printer, marked COPY', 'ok');
       setReprintOpen(false);
       setReason('');
       load();

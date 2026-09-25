@@ -30,7 +30,7 @@ export function ReferenceEditor({
     setBusy(true);
     try {
       await api.post(`/payments/${paymentId}/reference`, { referenceNumber: ref.trim() });
-      toast('Transaction number saved', 'success');
+      toast('Transaction number saved', 'ok');
       setRef('');
       onSaved();
     } catch (e) {

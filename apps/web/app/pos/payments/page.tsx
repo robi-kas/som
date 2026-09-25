@@ -133,7 +133,7 @@ export default function PaymentsHistoryPage() {
     form.append('file', file);
     try {
       await api.upload(`/payments/${r.id}/evidence`, form);
-      toast('Screenshot attached', 'success');
+      toast('Screenshot attached', 'ok');
       load();
     } catch (e) {
       toast(errorText(e), 'error');

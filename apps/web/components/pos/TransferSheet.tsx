@@ -103,7 +103,7 @@ export function TransferSheet({ open, onClose, order, onDone }: { open: boolean;
       if (cfg.askPayerBank) form.append('payerBank', payerBank.trim());
       if (photo) form.append('file', photo, 'payment.jpg');
       await api.upload(`/orders/${order.id}/payments/report`, form, { 'Idempotency-Key': idem.current });
-      toast(changeCents > 0 ? `Sent to the cashier. The customer gets ${money(fromCents(changeCents))} change at the till.` : 'Sent to the cashier to check', 'success');
+      toast(changeCents > 0 ? `Sent to the cashier. The customer gets ${money(fromCents(changeCents))} change at the till.` : 'Sent to the cashier to check', 'ok');
       onDone();
       onClose();
     } catch (e) {
