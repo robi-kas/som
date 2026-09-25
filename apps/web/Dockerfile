@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build from the repo root:  docker build -f apps/web/Dockerfile .
-FROM node:22-bookworm-slim AS deps
+FROM node:26-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
@@ -17,7 +17,7 @@ ARG API_ORIGIN=http://api:3001
 ENV API_ORIGIN=$API_ORIGIN
 RUN cd apps/web && npx next build
 
-FROM node:22-bookworm-slim AS run
+FROM node:26-bookworm-slim AS run
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 RUN useradd --system --uid 1001 cafe
