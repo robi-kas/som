@@ -80,6 +80,8 @@ export function AppShell({ children, live, title, dark }: { children: ReactNode;
 
   if (loading || !me) return <PageSpinner />;
   const items = NAV.filter((n) => can(n.permission));
+  const current = items.find((n) => pathname.startsWith(n.href));
+  const tabs = items.length > 1;
 
   return (
     <div className={`flex h-[100dvh] flex-col ${dark ? 'bg-kds-bg text-kds-text' : 'bg-canvas-soft text-ink'}`}>
@@ -88,8 +90,10 @@ export function AppShell({ children, live, title, dark }: { children: ReactNode;
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <CafeMark name={me.organization.name} logoUrl={me.organization.logoUrl} dark={dark} />
-        {items.length > 1 ? (
-          <nav className="hide-scrollbar flex flex-1 gap-1 overflow-x-auto">
+        {/* Phone: the section name here, the sections themselves in the bottom tab bar. */}
+        {tabs && <div className="min-w-0 flex-1 truncate font-display text-display-sm sm:hidden">{title ?? (current ? t(current.label) : '')}</div>}
+        {tabs ? (
+          <nav className="hide-scrollbar hidden flex-1 gap-1 overflow-x-auto sm:flex">
             {items.map((n) => {
               const on = pathname.startsWith(n.href);
               return (
@@ -175,7 +179,35 @@ export function AppShell({ children, live, title, dark }: { children: ReactNode;
           )}
         </div>
       </header>
-      <main className="relative flex-1 overflow-hidden">{children}</main>
+      <main className="relative min-h-0 flex-1 overflow-hidden">{children}</main>
+
+      {/* Phone: every section one thumb-tap away (no sideways sliding). */}
+      {tabs && (
+        <nav
+          className={`grid shrink-0 sm:hidden ${dark ? 'border-t border-kds-line bg-kds-bg' : 'border-t border-line bg-canvas'}`}
+          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          aria-label="Sections"
+        >
+          {items.map((n) => {
+            const on = pathname.startsWith(n.href);
+            return (
+              <Link
+                key={n.href}
+                href={n.href}
+                aria-current={on ? 'page' : undefined}
+                className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${
+                  on ? (dark ? 'text-primary' : 'text-ink') : dark ? 'text-kds-mute' : 'text-mute'
+                }`}
+              >
+                <span className={`grid h-8 w-12 place-items-center rounded-full ${on ? (dark ? 'bg-kds-card' : 'bg-primary') : ''}`}>
+                  <Icon name={n.icon} size={20} />
+                </span>
+                <span className="max-w-full truncate px-1">{t(n.label)}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }

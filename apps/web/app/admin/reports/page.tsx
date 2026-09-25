@@ -197,7 +197,25 @@ export default function ReportsPage() {
               {variances.length === 0 ? (
                 <p className="text-sm text-mute">No drawer shifts in this period.</p>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                <ul className="flex flex-col divide-y divide-line-soft md:hidden">
+                  {variances.map((v) => (
+                    <li key={v.shiftId} className="flex items-center justify-between gap-3 py-3 text-sm tnum">
+                      <div className="min-w-0">
+                        <p className="font-semibold">{v.cashierName}</p>
+                        <p className="text-xs text-mute">
+                          {dateLabel(v.openedAt)} {clock(v.openedAt)} · expected {money(v.expectedCash)}
+                          {v.actualCash ? `, counted ${money(v.actualCash)}` : ''}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {v.status === 'OPEN' ? <Pill tone="info">Open</Pill> : v.status === 'CLOSING' ? <Pill tone="warn">Needs sign-off</Pill> : <Pill tone="good">Closed</Pill>}
+                        {v.variance && <span className={`font-semibold ${Number(v.variance) < 0 ? 'text-negative' : ''}`}>{money(v.variance, { sign: true })}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full min-w-[560px] text-sm tnum">
                     <thead>
                       <tr className="text-left text-xs text-mute">
@@ -227,6 +245,7 @@ export default function ReportsPage() {
                     </tbody>
                   </table>
                 </div>
+                </>
               )}
             </Panel>
           </>

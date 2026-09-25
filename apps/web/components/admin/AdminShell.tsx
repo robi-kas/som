@@ -9,6 +9,7 @@ import { useLive } from '@/lib/live';
 import { AppShell } from '@/components/shell/AppShell';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useRingOnIncrease } from '@/lib/sound';
+import { Sheet } from '@/components/ui/Sheet';
 
 const SECTIONS: { href: string; label: string; icon: IconName; permission: string }[] = [
   { href: '/admin', label: 'Today', icon: 'chart', permission: 'report.view' },
@@ -54,13 +55,56 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const live = useLive(branchId, ['payment.updated', 'printer.updated', 'order.updated'], () => load(), 60_000);
 
   const items = SECTIONS.filter((s) => can(s.permission));
+  const isOn = (href: string) => (href === '/admin' ? pathname === '/admin' : pathname.startsWith(href));
+  const current = items.find((s) => isOn(s.href)) ?? items[0];
+  const [picker, setPicker] = useState(false);
+  // Close the section picker after navigating.
+  useEffect(() => setPicker(false), [pathname]);
 
   return (
     <AppShell live={live}>
       <div className="flex h-full flex-col md:flex-row">
-        <nav className="hide-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-line bg-canvas px-2 py-2 md:w-56 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r md:px-3 md:py-4">
+        {/* Phone: one button showing where you are; tap it for every section. */}
+        <div className="shrink-0 border-b border-line bg-canvas px-3 py-2 md:hidden">
+          <button
+            onClick={() => setPicker(true)}
+            aria-haspopup="dialog"
+            className="flex h-11 w-full items-center gap-2.5 rounded-lg border border-line px-3 text-left text-sm font-semibold hover:border-ink"
+          >
+            {current && <Icon name={current.icon} size={18} />}
+            <span className="min-w-0 flex-1 truncate">{current?.label}</span>
+            {!!attention && current?.href !== '/admin/approvals' && <span className="rounded-full bg-warning px-2 text-xs text-ink">{attention}</span>}
+            <span className="text-mute" aria-hidden="true">
+              ☰
+            </span>
+            <span className="sr-only">Show all sections</span>
+          </button>
+        </div>
+        <Sheet open={picker} onClose={() => setPicker(false)} title="Manage">
+          <div className="grid grid-cols-2 gap-2 pb-2">
+            {items.map((s) => {
+              const on = isOn(s.href);
+              return (
+                <Link
+                  key={s.href}
+                  href={s.href}
+                  onClick={() => setPicker(false)}
+                  className={`relative flex min-h-[76px] flex-col justify-between gap-2 rounded-lg border p-3 text-sm font-semibold ${on ? 'border-ink bg-ink text-white' : 'border-line hover:border-ink'}`}
+                >
+                  <Icon name={s.icon} size={20} />
+                  <span className="leading-tight">{s.label}</span>
+                  {s.href === '/admin/approvals' && !!attention && (
+                    <span className="absolute right-2 top-2 rounded-full bg-warning px-2 text-xs text-ink">{attention}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </Sheet>
+
+        <nav className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-line bg-canvas px-3 py-4 md:flex md:w-56">
           {items.map((s) => {
-            const on = s.href === '/admin' ? pathname === '/admin' : pathname.startsWith(s.href);
+            const on = isOn(s.href);
             return (
               <Link
                 key={s.href}

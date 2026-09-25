@@ -200,7 +200,7 @@ function ClearOldSheet({ open, onClose, onCleared }: { open: boolean; onClose: (
     <Sheet open={open} onClose={onClose} title="Clear old activity">
       <div className="flex flex-col gap-4 p-5">
         <p className="text-sm text-body">Keep the recent history and delete everything older. This can’t be undone.</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {([30, 90, 365] as const).map((d) => (
             <Button key={d} variant={days === d ? 'dark' : 'outline'} onClick={() => setDays(d)}>
               {d === 365 ? 'Older than 1 year' : `Older than ${d} days`}

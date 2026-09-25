@@ -119,7 +119,54 @@ export default function StaffPage() {
     <div className="pb-10">
       <PageHeader title="Staff" sub="Each person has their own login. New people choose their own password on first sign-in." actions={<Button onClick={openAdd}>Add person</Button>} />
       <div className="px-4 sm:px-8">
-        <div className="overflow-x-auto rounded-xl border border-line bg-canvas">
+        {/* Phone: one card per person, actions as buttons underneath. */}
+        <ul className="flex flex-col gap-2 md:hidden">
+          {staff.map((s) => (
+            <li key={s.id} className={`rounded-xl border border-line bg-canvas p-4 ${s.isActive ? '' : 'opacity-60'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold">
+                    {s.displayName} {!s.isActive && <Pill className="ml-1">Disabled</Pill>}
+                  </p>
+                  <p className="text-sm text-body">
+                    {s.roleName}
+                    {s.hasPin && <span className="text-xs text-mute"> · PIN set</span>}
+                  </p>
+                  {s.stations.length > 0 && <p className="text-xs text-mute">at {s.stations.map((x) => x.name).join(', ')}</p>}
+                </div>
+                <span className="shrink-0 font-mono text-xs text-mute">{s.username}</span>
+              </div>
+              {s.id !== me?.user.id && (
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPicked(s.stations.map((x) => x.id));
+                      setEditStations(s);
+                    }}
+                  >
+                    Stations
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => resetPassword(s)}>
+                    Password
+                  </Button>
+                  {s.isActive ? (
+                    <Button variant="outline" size="sm" className="text-negative" onClick={() => run(() => api.patch(`/staff/${s.id}/deactivate`), `${s.displayName} can no longer sign in`)}>
+                      Disable
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => run(() => api.patch(`/staff/${s.id}/reactivate`), `${s.displayName} enabled`)}>
+                      Enable
+                    </Button>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden overflow-x-auto rounded-xl border border-line bg-canvas md:block">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs text-mute">

@@ -231,9 +231,10 @@ export function PaymentPanel({
   }
 
   return (
-    <div className="grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+    // Phone/tablet: bill then payment, one scrolling page. Wide screens: side by side, each scrolling.
+    <div className="h-full min-h-0 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:overflow-hidden">
       {/* Bill */}
-      <section className="flex min-h-0 flex-col border-b border-line lg:border-b-0 lg:border-r">
+      <section className="flex flex-col border-b border-line lg:min-h-0 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between gap-2 px-5 pb-2 pt-4">
           <div>
             <h2 className="font-display text-display-md">{order.tableName ?? t('common.takeaway')}</h2>
@@ -245,7 +246,7 @@ export function PaymentPanel({
             <Icon name="receipt" size={16} /> {t('cashier.printBill')}
           </Button>
         </div>
-        <ul className="flex-1 overflow-y-auto px-5 text-sm">
+        <ul className="px-5 text-sm lg:flex-1 lg:overflow-y-auto">
           {order.items
             .filter((i) => i.status !== 'CANCELLED')
             .map((i) => (
@@ -285,7 +286,7 @@ export function PaymentPanel({
       </section>
 
       {/* Tender */}
-      <section className="flex min-h-0 flex-col gap-4 overflow-y-auto p-5">
+      <section className="flex flex-col gap-4 p-5 lg:min-h-0 lg:overflow-y-auto">
         <div className="flex items-baseline justify-between rounded-lg bg-ink px-4 py-3 text-white">
           <span className="text-sm text-[#b9bdb4]">
             {partCents < payableCents ? `${t('cashier.payPart')} (of ${money(fromCents(payableCents))})` : t('cashier.amountDue')}
