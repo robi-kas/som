@@ -118,25 +118,6 @@ export class ShiftsService {
       if (shift.status !== 'OPEN') throw new ConflictException('Shift is not open');
       if (shift.cashierId !== principal.userId) throw new ForbiddenException('You do not own this shift');
 
-      // Every Telebirr / bank payment taken on this shift needs its transaction number first.
-      const refMethods = await tx.paymentMethod.findMany({ where: { branchId: shift.branchId, requiresReference: true }, select: { code: true } });
-      const missingRefs = await tx.payment.count({
-        where: {
-          receivedById: shift.cashierId,
-          createdAt: { gte: shift.openedAt },
-          method: { in: refMethods.map((m) => m.code) },
-          referenceNumber: null,
-          status: { not: 'REJECTED' },
-        },
-      });
-      if (missingRefs > 0) {
-        throw new ConflictException({
-          code: 'REFERENCES_MISSING',
-          count: missingRefs,
-          message: `${missingRefs} payment${missingRefs === 1 ? '' : 's'} still need${missingRefs === 1 ? 's' : ''} a transaction number. Fill ${missingRefs === 1 ? 'it' : 'them'} in first.`,
-        });
-      }
-
       const movement = await tx.cashMovement.create({
         data: {
           shiftId,
@@ -209,6 +190,25 @@ export class ShiftsService {
 
       if (shift.status !== 'OPEN') throw new ConflictException('Shift is not OPEN');
       if (shift.cashierId !== principal.userId) throw new ForbiddenException('You do not own this shift');
+
+      // Every Telebirr / bank payment taken on this shift needs its transaction number first.
+      const refMethods = await tx.paymentMethod.findMany({ where: { branchId: shift.branchId, requiresReference: true }, select: { code: true } });
+      const missingRefs = await tx.payment.count({
+        where: {
+          receivedById: shift.cashierId,
+          createdAt: { gte: shift.openedAt },
+          method: { in: refMethods.map((m) => m.code) },
+          referenceNumber: null,
+          status: { not: 'REJECTED' },
+        },
+      });
+      if (missingRefs > 0) {
+        throw new ConflictException({
+          code: 'REFERENCES_MISSING',
+          count: missingRefs,
+          message: `${missingRefs} payment${missingRefs === 1 ? '' : 's'} still need${missingRefs === 1 ? 's' : ''} a transaction number. Fill ${missingRefs === 1 ? 'it' : 'them'} in first.`,
+        });
+      }
 
       const branchConfig = await tx.branchConfiguration.findUnique({ where: { branchId: shift.branchId } });
       const tolerance = branchConfig?.varianceTolerance ?? new D(0);
