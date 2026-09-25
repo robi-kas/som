@@ -3,10 +3,14 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'New Chapter POS',
+  title: { default: 'New Chapter POS', template: '%s · New Chapter POS' },
   description: 'Point of sale, kitchen display and back office for New Chapter cafe',
+  applicationName: 'New Chapter POS',
+  // A private staff app: never show it in Google (see also app/robots.ts).
+  robots: { index: false, follow: false, nocache: true },
+  formatDetection: { telephone: false },
   manifest: '/manifest.webmanifest',
-  icons: { icon: '/icon.svg' },
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }, { url: '/icon-512.png', sizes: '512x512', type: 'image/png' }], apple: '/icon-512.png' },
   appleWebApp: { capable: true, title: 'New Chapter POS', statusBarStyle: 'black-translucent' },
 };
 

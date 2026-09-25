@@ -146,7 +146,7 @@ export function printImage(dataUrl: string, title: string, columns = 48) {
   const mm = columns >= 48 ? 72 : 48; // printable width of 80 mm / 58 mm paper
   w.document.write(`<!doctype html><title>${title.replace(/</g, '&lt;')}</title>
 <style>@page{size:${mm + 8}mm auto;margin:4mm}body{margin:0;display:flex;justify-content:center}img{width:${mm}mm;height:auto}</style>
-<img src="${dataUrl}" onload="setTimeout(function(){window.print()},50)">`);
+<img src="${dataUrl}" alt="${title.replace(/"/g, '&quot;').replace(/</g, '&lt;')}" onload="setTimeout(function(){window.print()},50)">`);
   w.document.close();
   return true;
 }
