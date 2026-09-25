@@ -1,14 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useSession } from '@/lib/session';
 import { useT, type I18nKey } from '@/lib/i18n';
 import type { LiveStatus } from '@/lib/live';
 import { setSoundEnabled, useSoundState } from '@/lib/sound';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { PageSpinner } from '@/components/ui/Spinner';
+import { CommandPalette, type Command } from '@/components/shell/CommandPalette';
+import { ADMIN_SECTIONS } from '@/lib/nav';
 
 interface NavItem {
   href: string;
@@ -76,12 +78,41 @@ export function AppShell({ children, live, title, dark }: { children: ReactNode;
   const { t, lang, setLang } = useT();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const sound = useSoundState();
+  const router = useRouter();
+
+  // Ctrl+K / ⌘K opens quick search from anywhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   if (loading || !me) return <PageSpinner />;
   const items = NAV.filter((n) => can(n.permission));
   const current = items.find((n) => pathname.startsWith(n.href));
   const tabs = items.length > 1;
+  const commands: Command[] = [
+    ...items.map((n) => ({ id: n.href, label: t(n.label), group: 'Go to', icon: n.icon, run: () => router.push(n.href) })),
+    ...ADMIN_SECTIONS.filter((s) => can(s.permission) && s.href !== '/admin').map((s) => ({
+      id: s.href,
+      label: s.label,
+      group: 'Manage',
+      icon: s.icon,
+      keywords: s.keywords,
+      run: () => router.push(s.href),
+    })),
+    { id: 'account', label: 'Password & PIN', group: 'Account', icon: 'lock', keywords: 'change password pin', run: () => router.push('/account') },
+    { id: 'sound', label: `Turn notification sound ${sound.enabled ? 'off' : 'on'}`, group: 'Action', icon: 'volume', keywords: 'ring bell mute', run: () => setSoundEnabled(!sound.enabled) },
+    { id: 'lang', label: lang === 'am' ? 'Switch to English' : 'Switch to Amharic (አማርኛ)', group: 'Action', icon: 'settings', keywords: 'language', run: () => setLang(lang === 'am' ? 'en' : 'am') },
+    { id: 'logout', label: t('common.logout'), group: 'Action', icon: 'x', keywords: 'sign out exit', run: logout },
+  ];
 
   return (
     <div className={`flex h-[100dvh] flex-col ${dark ? 'bg-kds-bg text-kds-text' : 'bg-canvas-soft text-ink'}`}>
@@ -113,6 +144,17 @@ export function AppShell({ children, live, title, dark }: { children: ReactNode;
         ) : (
           <div className="flex-1 truncate font-display text-display-sm">{title}</div>
         )}
+
+        {/* Desktop: quick search button (Ctrl+K). */}
+        <button
+          onClick={() => setPaletteOpen(true)}
+          className={`hidden h-9 items-center gap-2 rounded-md border px-3 text-sm lg:inline-flex ${dark ? 'border-kds-line text-kds-mute hover:text-kds-text' : 'border-line text-mute hover:border-ink hover:text-ink'}`}
+          aria-label="Quick search"
+        >
+          <Icon name="search" size={16} />
+          <span>Search</span>
+          <kbd className={`rounded px-1.5 text-[11px] ${dark ? 'bg-kds-card' : 'bg-canvas-sunk'}`}>Ctrl K</kbd>
+        </button>
 
         {sound.enabled && !sound.unlocked && (
           <span className={`hidden items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${dark ? 'bg-kds-card text-warning' : 'bg-warning-bg text-warning-deep'}`}>
@@ -180,6 +222,7 @@ export function AppShell({ children, live, title, dark }: { children: ReactNode;
         </div>
       </header>
       <main className="relative min-h-0 flex-1 overflow-hidden">{children}</main>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
 
       {/* Phone: every section one thumb-tap away (no sideways sliding). */}
       {tabs && (
