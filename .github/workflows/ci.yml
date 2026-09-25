@@ -28,6 +28,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Security audit (production dependencies)
+        # Reports known vulnerabilities; Dependabot opens the fixes. Doesn't block the build.
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
       - name: Generate Prisma client
         run: npm exec -w apps/api -- prisma generate
       - name: Typecheck

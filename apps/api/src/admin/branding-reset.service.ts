@@ -1,3 +1,4 @@
+import { realImageMime } from '../common/utils/image-sniff.js';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
@@ -46,7 +47,9 @@ export class BrandingResetService {
 
   async uploadLogo(file: Express.Multer.File, principal: AuthenticatedPrincipal) {
     requirePermission(principal, 'settings.manage');
-    const ext = LOGO_EXT[file.mimetype];
+    // The type comes from the file's real bytes, not what the browser claims.
+    const mime = realImageMime(file.buffer);
+    const ext = mime ? LOGO_EXT[mime] : undefined;
     if (!ext) throw new BadRequestException('Use a PNG (best for printing), JPG or WebP image');
     fs.mkdirSync(BRANDING_UPLOAD_DIR, { recursive: true });
     const filename = `logo-${randomUUID()}.${ext}`;

@@ -1,3 +1,4 @@
+import { realImageMime } from '../common/utils/image-sniff.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Injectable, ConflictException, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
@@ -463,9 +464,10 @@ export class ProductsService {
     }
     await assertBranchAccess(this.prisma, principal, product.branchId);
 
-    // Never trust the client's filename: the extension comes from the validated mimetype.
-    const ext = IMAGE_EXTENSIONS[file.mimetype];
-    if (!ext) throw new BadRequestException('Unsupported image type');
+    // Never trust the client's filename or claimed type: the extension comes from the file's real bytes.
+    const mime = realImageMime(file.buffer);
+    const ext = mime ? IMAGE_EXTENSIONS[mime] : undefined;
+    if (!ext) throw new BadRequestException('That file is not a PNG, JPEG or WebP photo');
 
     if (!fs.existsSync(PRODUCT_UPLOAD_DIR)) {
       fs.mkdirSync(PRODUCT_UPLOAD_DIR, { recursive: true });

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { sniffImage } from '../common/utils/image-sniff.js';
 import { CreatePaymentDto, ReportPaymentDto } from './dto/payment.dto.js';
 import { PaymentMethodsService } from './payment-methods.service.js';
 import type { AuthenticatedPrincipal } from '../auth/interfaces/authenticated-request.interface.js';
@@ -19,13 +20,7 @@ import { EventsService } from '../events/events.service.js';
 
 export const EVIDENCE_DIR = path.resolve(process.cwd(), 'uploads', 'evidence');
 
-/** The real file type from its first bytes, so a renamed file can't pass as a photo. */
-export function sniffImage(buf: Buffer): 'png' | 'jpeg' | 'webp' | null {
-  if (buf.length > 8 && buf[0] === 0x89 && buf.toString('ascii', 1, 4) === 'PNG') return 'png';
-  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpeg';
-  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
-  return null;
-}
+export { sniffImage } from '../common/utils/image-sniff.js';
 
 /** Saves a payment screenshot privately and returns the stored file name. */
 function saveEvidenceFile(file: Express.Multer.File) {
