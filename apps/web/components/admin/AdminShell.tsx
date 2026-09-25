@@ -7,22 +7,12 @@ import { api } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { useLive } from '@/lib/live';
 import { AppShell } from '@/components/shell/AppShell';
-import { Icon, type IconName } from '@/components/ui/Icon';
+import { Icon } from '@/components/ui/Icon';
 import { useRingOnIncrease } from '@/lib/sound';
 import { Sheet } from '@/components/ui/Sheet';
+import { ADMIN_SECTIONS } from '@/lib/nav';
 
-const SECTIONS: { href: string; label: string; icon: IconName; permission: string }[] = [
-  { href: '/admin', label: 'Today', icon: 'chart', permission: 'report.view' },
-  { href: '/admin/approvals', label: 'Needs attention', icon: 'flag', permission: 'report.view' },
-  { href: '/admin/reports', label: 'Reports', icon: 'receipt', permission: 'report.view_financial' },
-  { href: '/admin/menu', label: 'Menu', icon: 'menu', permission: 'product.update' },
-  { href: '/admin/tables', label: 'Tables', icon: 'tables', permission: 'table.update' },
-  { href: '/admin/staff', label: 'Staff', icon: 'users', permission: 'user.manage' },
-  { href: '/admin/printers', label: 'Kitchen & printers', icon: 'printer', permission: 'printer.view' },
-  { href: '/admin/prints', label: 'Printed bills', icon: 'receipt', permission: 'receipt.view' },
-  { href: '/admin/activity', label: 'Activity log', icon: 'log', permission: 'report.view' },
-  { href: '/admin/settings', label: 'Settings', icon: 'settings', permission: 'report.view' },
-];
+const SECTIONS = ADMIN_SECTIONS;
 
 interface Attention {
   paymentVerifications: number;
@@ -58,6 +48,23 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const isOn = (href: string) => (href === '/admin' ? pathname === '/admin' : pathname.startsWith(href));
   const current = items.find((s) => isOn(s.href)) ?? items[0];
   const [picker, setPicker] = useState(false);
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    try {
+      setNarrow(localStorage.getItem('adminSidebar') === 'narrow');
+    } catch {
+      /* private mode: default wide */
+    }
+  }, []);
+  const toggleNarrow = () =>
+    setNarrow((n) => {
+      try {
+        localStorage.setItem('adminSidebar', n ? 'wide' : 'narrow');
+      } catch {
+        /* ignore */
+      }
+      return !n;
+    });
   // Close the section picker after navigating.
   useEffect(() => setPicker(false), [pathname]);
 
@@ -102,25 +109,64 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </Sheet>
 
-        <nav className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-line bg-canvas px-3 py-4 md:flex md:w-56">
-          {items.map((s) => {
-            const on = isOn(s.href);
+        {/* Desktop: grouped sidebar; collapses to icons for more room (remembered). */}
+        <nav
+          aria-label="Manage sections"
+          className={`hidden shrink-0 flex-col overflow-y-auto border-r border-line bg-canvas py-4 transition-[width] md:flex ${narrow ? 'md:w-[68px] px-2' : 'md:w-60 px-3'}`}
+        >
+          {(['Today', 'Money', 'Setup'] as const).map((group) => {
+            const inGroup = items.filter((s) => s.group === group);
+            if (!inGroup.length) return null;
             return (
-              <Link
-                key={s.href}
-                href={s.href}
-                className={`flex h-10 shrink-0 items-center gap-2.5 rounded-md px-3 text-sm font-semibold ${on ? 'bg-ink text-white' : 'text-body hover:bg-canvas-sunk'}`}
-              >
-                <Icon name={s.icon} size={18} />
-                {s.label}
-                {s.href === '/admin/approvals' && !!attention && (
-                  <span className={`ml-auto rounded-full px-2 text-xs ${on ? 'bg-primary text-ink' : 'bg-warning text-ink'}`}>{attention}</span>
+              <div key={group} className="mb-3 flex flex-col gap-0.5">
+                {narrow ? (
+                  <div className="mx-2 mb-1 border-t border-line-soft first:border-0" />
+                ) : (
+                  <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-mute">{group}</p>
                 )}
-              </Link>
+                {inGroup.map((s) => {
+                  const on = isOn(s.href);
+                  const badge = s.href === '/admin/approvals' && !!attention;
+                  return (
+                    <Link
+                      key={s.href}
+                      href={s.href}
+                      title={narrow ? s.label : undefined}
+                      aria-current={on ? 'page' : undefined}
+                      className={`relative flex h-10 shrink-0 items-center gap-2.5 rounded-md text-sm font-semibold ${narrow ? 'justify-center' : 'px-3'} ${
+                        on ? 'bg-ink text-white' : 'text-body hover:bg-canvas-sunk'
+                      }`}
+                    >
+                      <Icon name={s.icon} size={18} />
+                      {!narrow && <span className="truncate">{s.label}</span>}
+                      {badge &&
+                        (narrow ? (
+                          <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-warning ring-2 ring-canvas" aria-label={`${attention} need attention`} />
+                        ) : (
+                          <span className={`ml-auto rounded-full px-2 text-xs ${on ? 'bg-primary text-ink' : 'bg-warning text-ink'}`}>{attention}</span>
+                        ))}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
+          <button
+            onClick={toggleNarrow}
+            className={`mt-auto flex h-9 items-center gap-2 rounded-md text-xs font-semibold text-mute hover:bg-canvas-sunk hover:text-ink ${narrow ? 'justify-center' : 'px-3'}`}
+            aria-label={narrow ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={narrow ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <span aria-hidden="true" className={`inline-block transition-transform ${narrow ? 'rotate-180' : ''}`}>
+              «
+            </span>
+            {!narrow && 'Collapse'}
+          </button>
         </nav>
-        <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
+        {/* Wide monitors: keep pages at a readable width instead of stretching edge to edge. */}
+        <div className="min-w-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+        </div>
       </div>
     </AppShell>
   );
