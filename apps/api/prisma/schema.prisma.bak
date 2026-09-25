@@ -1,0 +1,516 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                String              @id @default(uuid())
+  name              String
+  slug              String              @unique
+  branches          Branch[]
+  users             User[]
+  roles             Role[]
+  createdAt         DateTime            @default(now())
+  kitchenStations   KitchenStation[]
+  products          Product[]
+  tables            Table[]
+  Category          Category[]
+  Order             Order[]
+  OrderItem         OrderItem[]
+  OrderItemModifier OrderItemModifier[]
+  KitchenTicket     KitchenTicket[]
+}
+
+model Branch {
+  id                String              @id @default(uuid())
+  organizationId    String
+  name              String
+  currency          String              @default("ETB")
+  taxMode           String              @default("EXCLUSIVE")
+  organization      Organization        @relation(fields: [organizationId], references: [id])
+  tables            Table[]
+  shifts            CashierShift[]
+  devices           Device[]
+  kitchenStations   KitchenStation[]
+  userBranches      UserBranch[]
+  createdAt         DateTime            @default(now())
+  categories        Category[]
+  Product           Product[]
+  Order             Order[]
+  OrderItem         OrderItem[]
+  OrderItemModifier OrderItemModifier[]
+  KitchenTicket     KitchenTicket[]
+  config            BranchConfiguration?
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  username            String
+  passwordHash        String
+  isActive            Boolean   @default(true)
+  organizationId      String
+  failedLoginCount    Int       @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  forcePasswordChange Boolean   @default(false)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  employee     Employee?
+  sessions     Session[]
+  auditLogs    AuditLog[]
+  ordersHandled     Order[]          @relation("OrderWaiter")
+  itemStatusChanges OrderItemStatusHistory[]
+  userRoles    UserRole[]
+  userBranches UserBranch[]
+
+  @@unique([organizationId, username])
+  paymentsReceived Payment[] @relation("PaymentReceivedBy")
+  paymentsVerified Payment[] @relation("PaymentVerifiedBy")
+  cashMovements CashMovement[]
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  organizationId  String
+  name            String
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  code            String           @unique
+  description     String?
+  rolePermissions RolePermission[]
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+model UserBranch {
+  id       String @id @default(uuid())
+  userId   String
+  branchId String
+  user     User   @relation(fields: [userId], references: [id])
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, branchId])
+}
+
+model Session {
+  id             String    @id @default(uuid())
+  userId         String
+  tokenHash      String    @unique
+  deviceId       String?
+  lastActivityAt DateTime  @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id])
+}
+
+model Device {
+  id               String @id @default(uuid())
+  branchId         String
+  name             String
+  deviceIdentifier String @unique
+  branch           Branch @relation(fields: [branchId], references: [id])
+}
+
+model Employee {
+  id               String         @id @default(uuid())
+  userId           String         @unique
+  firstName        String
+  lastName         String
+  role             String
+  user             User           @relation(fields: [userId], references: [id])
+}
+
+model Category {
+  id             String       @id @default(uuid())
+  organizationId String
+  branchId       String
+  name           String
+  displayOrder   Int          @default(0)
+  isActive       Boolean      @default(true)
+  branch         Branch       @relation(fields: [branchId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  products       Product[]
+
+  @@unique([branchId, name])
+}
+
+model Product {
+  id                   String          @id @default(uuid())
+  organizationId       String
+  branchId             String
+  categoryId           String
+  name                 String
+  description          String?
+  sellingPrice         Decimal         @db.Decimal(18, 2)
+  status               String          @default("AVAILABLE")
+  preparationStationId String?
+  version              Int             @default(1)
+  category             Category        @relation(fields: [categoryId], references: [id])
+  organization         Organization    @relation(fields: [organizationId], references: [id])
+  branch               Branch          @relation(fields: [branchId], references: [id])
+  station              KitchenStation? @relation(fields: [preparationStationId], references: [id])
+}
+
+model Table {
+  id             String       @id @default(uuid())
+  branchId       String
+  organizationId String
+  name           String
+  displayOrder   Int          @default(0)
+  isActive       Boolean      @default(true)
+  capacity       Int
+  status         String       @default("AVAILABLE")
+  version        Int          @default(1)
+  branch         Branch       @relation(fields: [branchId], references: [id])
+  orders         Order[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([branchId, name])
+}
+
+model Order {
+  id                          String   @id @default(uuid())
+  orderNumber                 String
+  organizationId              String
+  branchId                    String
+  tableId                     String?
+  waiterId                    String?
+  type                        String   @default("DINE_IN")
+  status                      String   @default("DRAFT")
+  paymentStatus               String   @default("UNPAID")
+  currency                    String   @db.Char(3)
+  subtotal                    Decimal  @default(0) @db.Decimal(18, 2)
+  discountAmount              Decimal  @default(0) @db.Decimal(18, 2)
+  serviceChargeAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  taxAmount                   Decimal  @default(0) @db.Decimal(18, 2)
+  totalAmount                 Decimal  @default(0) @db.Decimal(18, 2)
+  taxConfigSnapshot           Json?
+  serviceChargeConfigSnapshot Json?
+  roundingModeSnapshot        String?
+  version                     Int      @default(1)
+  fireBatchNumber             Int      @default(0)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  table        Table?          @relation(fields: [tableId], references: [id])
+  waiter       User?           @relation("OrderWaiter", fields: [waiterId], references: [id])
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  branch       Branch          @relation(fields: [branchId], references: [id])
+  items        OrderItem[]
+  payments     Payment[]
+  refunds      Refund[]
+  tickets      KitchenTicket[]
+
+  @@unique([branchId, orderNumber])
+}
+
+model OrderItem {
+  id              String  @id @default(uuid())
+  organizationId  String
+  branchId        String
+  orderId         String
+  kitchenTicketId String?
+  stationId       String?
+  productId       String
+  productNameSnapshot String
+  unitPriceSnapshot   Decimal @db.Decimal(18, 2)
+  quantity        Int
+  notes           String?
+  status          String  @default("PENDING")
+  version         Int     @default(1)
+
+  organization Organization        @relation(fields: [organizationId], references: [id])
+  branch       Branch              @relation(fields: [branchId], references: [id])
+  order        Order               @relation(fields: [orderId], references: [id])
+  ticket       KitchenTicket?      @relation(fields: [kitchenTicketId], references: [id])
+  station      KitchenStation?     @relation(fields: [stationId], references: [id])
+  refundItems  RefundItem[]
+  modifiers    OrderItemModifier[]
+  statusHistory OrderItemStatusHistory[]
+}
+
+model Payment {
+  id                  String    @id @default(uuid())
+  organizationId String
+  orderId             String
+  method              String
+  currency                    String   @db.Char(3)
+  tenderedAmount      Decimal   @db.Decimal(18, 2)
+  appliedAmount       Decimal   @db.Decimal(18, 2)
+  changeAmount        Decimal   @default(0) @db.Decimal(18, 2)
+  refundableAmount    Decimal   @default(0) @db.Decimal(18, 2)
+  status              String
+  receivedById        String
+  verifiedById        String?
+  referenceNumber     String?
+  externalProviderRef String?
+  createdAt           DateTime  @default(now())
+  confirmedAt         DateTime?
+  version             Int       @default(1)
+  evidenceId          String?
+
+  order      Order     @relation(fields: [orderId], references: [id])
+  receivedBy User  @relation("PaymentReceivedBy", fields: [receivedById], references: [id])
+  verifiedBy User? @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+
+  @@index([orderId, status])
+  evidence PaymentEvidence? @relation(fields: [evidenceId], references: [id])
+}
+
+model Refund {
+  id            String   @id @default(uuid())
+  orderId       String
+  amount        Decimal  @db.Decimal(18, 2)
+  reason        String
+  status        String   @default("PENDING")
+  requestedById String
+  approvedById  String?
+  createdAt     DateTime @default(now())
+
+  order Order        @relation(fields: [orderId], references: [id])
+  items RefundItem[]
+}
+
+model RefundItem {
+  id           String  @id @default(uuid())
+  refundId     String
+  orderItemId  String
+  quantity     Int
+  refundAmount Decimal @db.Decimal(18, 2)
+
+  refund    Refund    @relation(fields: [refundId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+}
+
+model ApprovalRequest {
+  id            String   @id @default(uuid())
+  entityType    String
+  entityId      String
+  requestedById String
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+}
+
+model CashierShift {
+  id             String    @id @default(uuid())
+  organizationId String
+  branchId       String
+  cashierId      String
+  status         String    @default("OPEN")
+  version        Int       @default(1)
+  openingFloat   Decimal   @db.Decimal(18, 2)
+  expectedCash   Decimal   @default(0) @db.Decimal(18, 2)
+  actualCash     Decimal?  @db.Decimal(18, 2)
+  variance       Decimal?  @db.Decimal(18, 2)
+  openedAt       DateTime  @default(now())
+  closedAt       DateTime?
+
+  branch    Branch         @relation(fields: [branchId], references: [id])
+  movements CashMovement[]
+}
+
+model CashMovement {
+  id         String   @id @default(uuid())
+  shiftId    String
+  type       String
+  amount     Decimal  @db.Decimal(18, 2)
+  reason     String?
+  userId String
+  sourceType String?
+  sourceId   String?
+  createdAt  DateTime @default(now())
+
+  shift    CashierShift @relation(fields: [shiftId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+}
+
+model KitchenStation {
+  id             String          @id @default(uuid())
+  branchId       String
+  organizationId String
+  name           String
+  displayOrder   Int             @default(0)
+  isActive       Boolean         @default(true)
+  branch         Branch          @relation(fields: [branchId], references: [id])
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  printers       Printer[]
+  products       Product[]
+  OrderItem      OrderItem[]
+  KitchenTicket  KitchenTicket[]
+
+  @@unique([branchId, name])
+}
+
+model Printer {
+  id         String         @id @default(uuid())
+  stationId  String
+  name       String
+  ipAddress  String?
+  macAddress String?
+  isActive   Boolean        @default(true)
+  station    KitchenStation @relation(fields: [stationId], references: [id])
+  jobs       PrinterJob[]
+}
+
+model PrinterJob {
+  id         String   @id @default(uuid())
+  printerId  String
+  ticketId   String?
+  ticketType String
+  payload    Json
+  status     String   @default("PENDING")
+  retryCount Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  printer Printer        @relation(fields: [printerId], references: [id])
+  ticket  KitchenTicket? @relation(fields: [ticketId], references: [id])
+}
+
+model SyncEvent {
+  id         String   @id @default(uuid())
+  deviceId   String
+  entityType String
+  entityId   String
+  eventType  String
+  payload    Json
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String
+  action      String
+  entityType  String
+  entityId    String
+  beforeState Json?
+  afterState  Json?
+  timestamp   DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id])
+}
+
+model SecurityEvent {
+  id                String   @id @default(uuid())
+  organizationId    String?
+  actorUserId       String?
+  usernameAttempted String?
+  ipAddress         String?
+  userAgent         String?
+  eventType         String
+  reason            String?
+  requestId         String?
+  createdAt         DateTime @default(now())
+}
+
+model OrderItemModifier {
+  id                 String  @id @default(uuid())
+  organizationId     String
+  branchId           String
+  orderItemId        String
+  modifierId         String?
+  nameSnapshot       String
+  priceDeltaSnapshot Decimal @db.Decimal(18, 2)
+  version            Int     @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id])
+}
+
+model KitchenTicket {
+  id              String   @id @default(uuid())
+  organizationId  String
+  branchId        String
+  orderId         String
+  stationId       String
+  fireBatchNumber Int
+  ticketType      String
+  status          String   @default("PENDING")
+  version         Int      @default(1)
+  firedAt         DateTime @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id])
+  branch       Branch         @relation(fields: [branchId], references: [id])
+  order        Order          @relation(fields: [orderId], references: [id])
+  station      KitchenStation @relation(fields: [stationId], references: [id])
+  items        OrderItem[]
+  printerJobs  PrinterJob[]
+
+  @@unique([orderId, stationId, fireBatchNumber])
+}
+
+model BranchConfiguration {
+  id                  String   @id @default(uuid())
+  branchId            String   @unique
+  currency                    String   @db.Char(3)
+  taxRate             Decimal  @default(15.00) @db.Decimal(5, 2)
+  isTaxInclusive      Boolean  @default(false)
+  serviceChargeRate   Decimal  @default(10.00) @db.Decimal(5, 2)
+  roundingMode        String   @default("HALF_UP")
+  version             Int      @default(1)
+  
+  branch Branch @relation(fields: [branchId], references: [id])
+}
+
+model OrderItemStatusHistory {
+  id          String   @id @default(uuid())
+  orderItemId String
+  fromStatus  String
+  toStatus    String
+  changedById String
+  createdAt   DateTime @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  changedBy User      @relation(fields: [changedById], references: [id])
+
+  @@index([orderItemId])
+}
+
+
+model PaymentEvidence {
+  id          String   @id @default(uuid())
+  fileUrl     String
+  uploadedAt  DateTime @default(now())
+  payments    Payment[]
+}
+
+model IdempotencyKey {
+  id             String   @id @default(uuid())
+  organizationId String
+  endpoint       String
+  idempotencyKey String
+  responseCode   Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, endpoint, idempotencyKey])
+}

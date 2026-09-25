@@ -1,0 +1,11 @@
+# Local development database. Production uses deploy/docker-compose.prod.yml.
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: cafe
+      POSTGRES_PASSWORD: cafe_password
+      POSTGRES_DB: cafe_db
+    ports:
+      - "5433:5432"

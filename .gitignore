@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# builds
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# runtime artefacts
+deploy/backups/
+apps/api/uploads/
+apps/api/backend.pid
+apps/api/.e2e_out
+apps/api/.integration_out
+apps/api/.grep_out
+apps/output2.txt
+*.log
+.DS_Store
+
+# old nested repos (kept for reference only)
+.old-git/
+
+# local tool state
+.expo/
+.windsurf/
+.legacy-web/

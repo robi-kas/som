@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cafe
+          POSTGRES_PASSWORD: cafe_password
+          POSTGRES_DB: cafe_db
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U cafe" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://cafe:cafe_password@localhost:5433/cafe_db?schema=public
+      THROTTLE_LIMIT: '100000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm exec -w apps/api -- prisma generate
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint web
+        run: npm run lint
+      - name: Unit tests
+        run: npm run test:unit -w apps/api
+      - name: Migrate test database
+        run: npm exec -w apps/api -- prisma migrate deploy
+      - name: Integration tests
+        run: npm run test:integration -w apps/api
+      - name: Build
+        run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f apps/api/Dockerfile -t cafe-api .
+      - run: docker build -f apps/web/Dockerfile -t cafe-web .

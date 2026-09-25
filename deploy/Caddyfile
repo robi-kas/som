@@ -1,0 +1,19 @@
+# With a real domain (DOMAIN=pos.example.com) Caddy gets and renews the HTTPS certificate itself.
+# With DOMAIN=:80 (cafe laptop, no domain) it serves plain http on the local network.
+{$DOMAIN} {
+	encode zstd gzip
+	# Live updates (Server-Sent Events) must not be buffered or compressed.
+	@events path /api/v1/events*
+	handle @events {
+		reverse_proxy web:3000 {
+			flush_interval -1
+		}
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}

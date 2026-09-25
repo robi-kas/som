@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0e0f0c"/>
+  <text x="256" y="318" text-anchor="middle" font-family="Archivo, Arial Black, Arial, sans-serif" font-weight="900" font-size="200" letter-spacing="-8" fill="#9fe870">NC</text>
+  <rect x="136" y="366" width="240" height="18" rx="9" fill="#9fe870"/>
+</svg>

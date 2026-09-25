@@ -1,0 +1,12 @@
+{
+  "name": "print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runs inside the cafe: collects print jobs from the API and sends them to the thermal printers on the local network.",
+  "type": "module",
+  "main": "agent.mjs",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node agent.mjs"
+  }
+}
